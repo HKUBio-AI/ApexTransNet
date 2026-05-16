@@ -64,6 +64,25 @@ python predict.py   --input /path/to/image_folder   --checkpoint checkpoints/bes
 
 The script accepts `.png`, `.jpg`, `.jpeg`, `.bmp`, `.tif`, and `.tiff` images. Each image is converted to grayscale, resized to `512 x 512`, normalized by its own mean and standard deviation, and then passed through the model.
 
+## Example prediction
+
+An example AP-positive panoramic radiograph is included to demonstrate the inference workflow. Run:
+
+```bash
+python predict.py \
+  --input examples/case_input.jpg \
+  --checkpoint checkpoints/best_apex_trans_stage2_512.pt \
+  --output examples/case_prediction \
+  --threshold 0.55 \
+  --cls-threshold 0.5 \
+  --save-prob \
+  --save-overlay
+```
+
+For this example case, the model outputs a case-level AP probability of `0.9803`. The generated files include the binary mask, probability map, overlay, and `predictions.csv`.
+
+![ApexTransNet example prediction](examples/case_prediction/example_prediction_panel.png)
+
 ## Prediction outputs
 
 For each input image, `predict.py` saves:
