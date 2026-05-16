@@ -2,7 +2,7 @@
 
 ApexTransNet is an anatomy-aware deep learning framework for apical periodontitis (AP) analysis on panoramic dental radiographs. The model performs pixel-level AP lesion segmentation and case-level AP prediction using a shared encoder-decoder backbone with a Transformer bottleneck, ASPP context aggregation, attention-gated decoding, and auxiliary localization, boundary, and classification heads.
 
-This repository is packaged for reuse: it includes the final trained model checkpoint, core model code, an inference script, environment files, and training/evaluation scripts used in the project.
+This repository is packaged for reuse: it includes the core model code, an inference script, environment files, and training/evaluation scripts used in the project. The trained model checkpoint is hosted separately on Google Drive to keep the GitHub repository lightweight.
 
 ## Repository structure
 
@@ -20,12 +20,10 @@ ApexTransNet-github/
 │   ├── train_stage1_server.json       # Stage 1 training configuration
 │   └── train_stage2_server.json       # Stage 2 training/inference configuration
 ├── checkpoints/
-│   ├── best_apex_trans_stage2_512.pt  # Final ApexTransNet checkpoint for inference
-│   └── pretrained/                    # Optional encoder initialization for retraining, if available
+│   └── README.md                      # Instructions for placing downloaded model weights
 ├── scripts/                           # Optional dataset-preparation utilities
 ├── requirements.txt
 ├── environment.yml
-├── .gitattributes                     # Git LFS rules for model weights
 └── .gitignore
 ```
 
@@ -99,17 +97,29 @@ Important default thresholds:
 
 These are the defaults used for the released Stage 2 checkpoint. If you change thresholds, report them clearly in experiments.
 
-## Model checkpoint and GitHub note
+## Download trained checkpoint
 
-The checkpoint files are large. If this folder is pushed to GitHub, use Git LFS:
+The trained ApexTransNet Stage 2 checkpoint is hosted separately on Google Drive because the model weight file is larger than the standard GitHub file-size limit.
 
-```bash
-git lfs install
-git lfs track "*.pt" "*.pth"
-git add .gitattributes checkpoints/
+Download the checkpoint folder here:
+
+[ApexTransNet checkpoint on Google Drive](https://drive.google.com/drive/folders/155pcqd_6mB1M2NAolCk7i44bjFAY8DYA)
+
+After downloading, place the final Stage 2 checkpoint at:
+
+```text
+checkpoints/best_apex_trans_stage2_512.pt
 ```
 
-Without Git LFS, GitHub may reject model files larger than 100 MB.
+The expected local structure before running prediction is:
+
+```text
+ApexTransNet-github/
+└── checkpoints/
+    └── best_apex_trans_stage2_512.pt
+```
+
+The optional pretrained ResNet34 encoder is only needed for retraining from scratch; it is not required for prediction with the released Stage 2 checkpoint.
 
 ## Training
 
@@ -119,7 +129,7 @@ Stage 1 trains lesion segmentation using the hard consensus target:
 python train.py --config config/train_stage1_server.json
 ```
 
-Stage 2 normally initializes from the best Stage 1 checkpoint during full retraining and performs multi-task refinement with soft-vote lesion supervision, uncertainty weighting, localization supervision, boundary supervision, case-level diagnosis, and anatomy-guided regularization. The released repository keeps the final Stage 2 checkpoint for inference; if reproducing training from scratch, first run Stage 1 and then run Stage 2:
+Stage 2 normally initializes from the best Stage 1 checkpoint during full retraining and performs multi-task refinement with soft-vote lesion supervision, uncertainty weighting, localization supervision, boundary supervision, case-level diagnosis, and anatomy-guided regularization. If reproducing training from scratch, first run Stage 1 and then run Stage 2:
 
 ```bash
 python train.py --config config/train_stage2_server.json
@@ -146,7 +156,7 @@ ApexTransNet uses a ResNet-style encoder, Transformer bottleneck, ASPP context m
 - Case-level AP classification head.
 - Auxiliary lesion boundary head.
 
-The final Stage 2 model was trained with multi-task losses including segmentation, localization, classification, boundary, and anatomy-guided regularization terms. The released checkpoint is intended for research use and should not be used as a standalone clinical diagnostic device.
+The final Stage 2 model was trained with multi-task losses including segmentation, localization, classification, boundary, and anatomy-guided regularization terms. The trained checkpoint is hosted on Google Drive and is intended for research use only; it should not be used as a standalone clinical diagnostic device.
 
 ## Data and privacy
 
