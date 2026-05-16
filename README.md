@@ -51,13 +51,26 @@ For GPU inference or training, install the PyTorch build matching your CUDA vers
 Run inference on a single panoramic radiograph:
 
 ```bash
-python predict.py   --input /path/to/radiograph.png   --checkpoint checkpoints/best_apex_trans_stage2_512.pt   --output outputs/predictions   --threshold 0.55   --cls-threshold 0.5   --save-prob   --save-overlay
+python predict.py \
+  --input /path/to/radiograph.png \
+  --checkpoint checkpoints/best_apex_trans_stage2_512.pt \
+  --output outputs/predictions \
+  --threshold 0.55 \
+  --cls-threshold 0.5 \
+  --save-prob \
+  --save-overlay
 ```
 
 Run inference on a folder of images:
 
 ```bash
-python predict.py   --input /path/to/image_folder   --checkpoint checkpoints/best_apex_trans_stage2_512.pt   --output outputs/predictions   --threshold 0.55   --save-prob   --save-overlay
+python predict.py \
+  --input /path/to/image_folder \
+  --checkpoint checkpoints/best_apex_trans_stage2_512.pt \
+  --output outputs/predictions \
+  --threshold 0.55 \
+  --save-prob \
+  --save-overlay
 ```
 
 The script accepts `.png`, `.jpg`, `.jpeg`, `.bmp`, `.tif`, and `.tiff` images. Each image is converted to grayscale, resized to `512 x 512`, normalized by its own mean and standard deviation, and then passed through the model.
@@ -123,16 +136,50 @@ The optional pretrained ResNet34 encoder is only needed for retraining from scra
 
 ## Training
 
-Stage 1 trains lesion segmentation using the hard consensus target:
+ApexTransNet was trained with a two-stage strategy on resized `512 x 512` single-channel periapical radiographs. All input images were normalized by subtracting the image-specific mean and dividing by the image-specific standard deviation. Training augmentation included random horizontal flipping, mild intensity perturbation, and gamma transformation, with spatial transformations applied consistently to the image and all supervision maps.
+
+The model was optimized with AdamW, batch size `4`, weight decay `1e-4`, and a cosine annealing learning-rate scheduler. Model selection is performed using the validation split specified by `selection_split` in the configuration files.
+
+Stage 1 trains lesion segmentation using hard vote-2 consensus masks and the segmentation objective only. All auxiliary loss weights are set to zero in this stage:
 
 ```bash
 python train.py --config config/train_stage1_server.json
 ```
 
-Stage 2 normally initializes from the best Stage 1 checkpoint during full retraining and performs multi-task refinement with soft-vote lesion supervision, uncertainty weighting, localization supervision, boundary supervision, case-level diagnosis, and anatomy-guided regularization. If reproducing training from scratch, first run Stage 1 and then run Stage 2:
+Stage 1 default training settings:
+
+```text
+epochs = 80
+learning_rate = 1e-4
+loc_loss_weight = 0.0
+cls_loss_weight = 0.0
+boundary_loss_weight = 0.0
+anatomy_loss_weight = 0.0
+```
+
+Stage 2 initializes from the best Stage 1 checkpoint and performs multi-task refinement using soft-vote lesion targets, pixel-wise uncertainty weights, sample-level down-weighting for cases with only two annotators, tooth/root localization supervision, lesion boundary supervision, case-level AP diagnosis, and anatomy-guided regularization:
 
 ```bash
-python train.py --config config/train_stage2_server.json
+python train.py \
+  --config config/train_stage2_server.json \
+  --resume checkpoints/best_apex_trans_stage1_512.pt
+```
+
+Stage 2 default training settings:
+
+```text
+epochs = 50
+learning_rate = 3e-5
+loc_loss_weight = 0.10
+cls_loss_weight = 0.15
+boundary_loss_weight = 0.10
+anatomy_loss_weight = 0.10
+```
+
+The Stage 2 objective is:
+
+```text
+L = L_seg + 0.10 * L_loc + 0.15 * L_cls + 0.10 * L_boundary + 0.10 * L_anatomy
 ```
 
 Before training on a new machine, update the dataset paths in the JSON configuration files, especially `metadata_csv`, and ensure that image and mask paths referenced by the metadata file are accessible.
@@ -142,7 +189,11 @@ Before training on a new machine, update the dataset paths in the JSON configura
 The current evaluation script reports per-case mean metrics:
 
 ```bash
-python evaluate_casewise_mean.py   --config config/train_stage2_server.json   --checkpoint checkpoints/best_apex_trans_stage2_512.pt   --split test   --metrics-name test_metrics_apex_trans_stage2_case_mean.csv
+python evaluate_casewise_mean.py \
+  --config config/train_stage2_server.json \
+  --checkpoint checkpoints/best_apex_trans_stage2_512.pt \
+  --split test \
+  --metrics-name test_metrics_apex_trans_stage2_case_mean.csv
 ```
 
 Pixel-level metrics include Dice, IoU, precision, and recall. Lesion-level metrics are computed by connected components with an IoU matching threshold, controlled by `--iou-thr`.

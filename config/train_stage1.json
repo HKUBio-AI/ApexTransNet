@@ -1,0 +1,30 @@
+{
+  "stage": "stage1",
+  "run_name": "apex_trans_stage1_512",
+  "metadata_csv": "../processed/metadata/samples_with_split.csv",
+  "image_size": [
+    512,
+    512
+  ],
+  "target_mode": "hard_vote2",
+  "use_uncertainty_weight": false,
+  "downweight_two_annotator_cases": false,
+  "encoder_pretrained_path": "checkpoints/pretrained/resnet34_encoder_from_torchvision.pth",
+  "checkpoint_dir": "checkpoints",
+  "output_dir": "outputs",
+  "seed": 42,
+  "epochs": 80,
+  "batch_size": 4,
+  "num_workers": 4,
+  "learning_rate": 0.0001,
+  "weight_decay": 0.0001,
+  "threshold": 0.5,
+  "selection_split": "val",
+  "transformer_layers": 4,
+  "use_boundary_head": true,
+  "use_location_head": true,
+  "loc_loss_weight": 0.0,
+  "cls_loss_weight": 0.0,
+  "boundary_loss_weight": 0.0,
+  "anatomy_loss_weight": 0.0
+}
